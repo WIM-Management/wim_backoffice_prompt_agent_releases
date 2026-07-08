@@ -1,4 +1,4 @@
-# wim-prompt-agent — 릴리스 배포 채널
+# wim_backoffice_prompt_agent — 릴리스 배포 채널
 
 WIM 사내 **프롬프트 수집 에이전트**(wim-prompt-agent)의 릴리스 바이너리 배포용 공개 레포입니다.
 소스 코드는 private 레포(`WIM-Management/wim_backoffice_prompt_agent`)에서 관리되며, 여기에는 **빌드된 바이너리와 설치 스크립트만** 올라옵니다.
