@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wim-prompt-agent 설치 스크립트 (macOS / Linux)
+# wim-backoffice-prompt-agent 설치 스크립트 (macOS / Linux)
 #
 # 원라이너:
 #   curl -fsSL https://raw.githubusercontent.com/WIM-Management/wim_backoffice_prompt_agent_releases/main/install.sh | bash
@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="WIM-Management/wim_backoffice_prompt_agent_releases"
-BIN="wim-prompt-agent"
+BIN="wim-backoffice-prompt-agent"
 BASE="https://github.com/${REPO}/releases/latest/download"
 NO_SETUP=0
 [ "${1:-}" = "--no-setup" ] && NO_SETUP=1
