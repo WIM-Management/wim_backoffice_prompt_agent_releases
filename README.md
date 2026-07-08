@@ -17,7 +17,7 @@ curl -fsSL https://raw.githubusercontent.com/WIM-Management/wim_backoffice_promp
 irm https://raw.githubusercontent.com/WIM-Management/wim_backoffice_prompt_agent_releases/main/install.ps1 | iex
 ```
 
-스크립트가 최신 릴리스 다운로드 → SHA256 검증 → PATH 배치 → 기기 등록(`enroll`, 회사 Google 계정 로그인) → 자동 수집 시작(`install`)까지 한 번에 합니다.
+스크립트가 최신 릴리스 다운로드 → SHA256 검증 → PATH 배치 → `install`까지 합니다. `install` 한 명령이 기기 등록(필요 시 회사 Google 계정 로그인) → 데몬 등록 → 첫 수집 1회를 전부 처리합니다.
 
 수동 설치는 [Releases](https://github.com/WIM-Management/wim_backoffice_prompt_agent_releases/releases/latest)에서 OS별 바이너리를 직접 받아도 됩니다 (`darwin-arm64` / `darwin-amd64` / `linux-amd64` / `linux-arm64` / `windows-amd64.exe`, `SHA256SUMS`로 검증).
 

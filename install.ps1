@@ -4,7 +4,7 @@
 #   irm https://raw.githubusercontent.com/WIM-Management/wim_backoffice_prompt_agent_releases/main/install.ps1 | iex
 #
 # 하는 일: 최신 릴리스 exe 다운로드 → SHA256 검증 → %LOCALAPPDATA%\wim-backoffice-prompt-agent 설치 +
-# 사용자 PATH 등록 → enroll → install(작업 스케줄러).
+# 사용자 PATH 등록 → install(enroll·데몬·첫 수집 자동).
 # 옵션: $env:WIM_PROMPT_NO_SETUP=1 (바이너리 설치까지만)
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
@@ -37,16 +37,12 @@ $exe = Join-Path $dir "wim-backoffice-prompt-agent.exe"
 Write-Host "설치됨: $exe"
 & $exe status | Select-Object -First 1
 
-# --- enroll + 작업 스케줄러 등록 ---
+# --- 설치 마무리 (install이 enroll·데몬·첫 수집을 전부 오케스트레이션) ---
 if ($env:WIM_PROMPT_NO_SETUP -eq "1") {
-    Write-Host "(NO_SETUP) 다음 단계: wim-backoffice-prompt-agent enroll ; wim-backoffice-prompt-agent install"
+    Write-Host "(NO_SETUP) 다음 단계: wim-backoffice-prompt-agent install  (enroll·데몬·첫 수집까지 자동)"
     return
 }
 Write-Host ""
-Write-Host "기기 등록을 시작합니다 — 브라우저가 열리면 회사 Google 계정으로 로그인하세요."
-& $exe enroll
-if ($LASTEXITCODE -ne 0) { throw "enroll 실패" }
+Write-Host "설치를 마무리합니다 — 필요하면 브라우저가 열리니 회사 Google 계정으로 로그인하세요."
 & $exe install
 if ($LASTEXITCODE -ne 0) { throw "install 실패" }
-Write-Host ""
-Write-Host "✅ 완료! 15분 주기로 자동 수집됩니다. 확인: wim-backoffice-prompt-agent status"

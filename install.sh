@@ -4,7 +4,7 @@
 # 원라이너:
 #   curl -fsSL https://raw.githubusercontent.com/WIM-Management/wim_backoffice_prompt_agent_releases/main/install.sh | bash
 #
-# 하는 일: 최신 릴리스 바이너리 다운로드 → SHA256 검증 → PATH에 설치 → enroll → install(데몬).
+# 하는 일: 최신 릴리스 바이너리 다운로드 → SHA256 검증 → PATH에 설치 → install(enroll·데몬·첫 수집 자동).
 # 옵션: --no-setup (바이너리 설치까지만, enroll/데몬 등록 생략)
 set -euo pipefail
 
@@ -54,14 +54,11 @@ case ":$PATH:" in
   *) echo "⚠️  $dest 가 PATH에 없습니다. 셸 프로파일에 추가하세요: export PATH=\"$dest:\$PATH\"" ;;
 esac
 
-# --- enroll + 데몬 등록 ---
+# --- 설치 마무리 (install이 enroll·데몬·첫 수집을 전부 오케스트레이션) ---
 if [ "$NO_SETUP" = 1 ]; then
-  echo "(--no-setup) 다음 단계: $BIN enroll && $BIN install"
+  echo "(--no-setup) 다음 단계: $BIN install  (enroll·데몬·첫 수집까지 자동)"
   exit 0
 fi
 echo ""
-echo "기기 등록을 시작합니다 — 브라우저가 열리면 회사 Google 계정으로 로그인하세요."
-"$dest/$BIN" enroll
+echo "설치를 마무리합니다 — 필요하면 브라우저가 열리니 회사 Google 계정으로 로그인하세요."
 "$dest/$BIN" install
-echo ""
-echo "✅ 완료! 15분 주기로 자동 수집됩니다. 확인: $BIN status"
