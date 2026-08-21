@@ -17,8 +17,14 @@ curl -fsSL https://raw.githubusercontent.com/WIM-Management/wim_backoffice_promp
 irm https://raw.githubusercontent.com/WIM-Management/wim_backoffice_prompt_agent_releases/main/install.ps1 | iex
 ```
 
-스크립트가 최신 릴리스 다운로드 → SHA256 검증 → PATH 배치 → `install`까지 합니다. `install` 한 명령이 기기 등록(필요 시 회사 Google 계정 로그인) → 데몬 등록 → 첫 수집 1회를 전부 처리합니다.
+스크립트가 최신 릴리스 다운로드 → SHA256 검증 → PATH 배치 → `install`까지 합니다. `install` 한 명령이 기기 등록(필요 시 회사 Google 계정 로그인) → 데몬 등록 → 첫 수집 1회를 전부 처리합니다. Windows 스크립트는 CPU 아키텍처(amd64 / arm64)를 판정해 맞는 자산을 받고, 등록 토큰은 스크립트가 물어본 뒤 `install --token`으로 넘깁니다.
 
-수동 설치는 [Releases](https://github.com/WIM-Management/wim_backoffice_prompt_agent_releases/releases/latest)에서 OS별 바이너리를 직접 받아도 됩니다 (`darwin-arm64` / `darwin-amd64` / `linux-amd64` / `linux-arm64` / `windows-amd64.exe`, `SHA256SUMS`로 검증).
+Windows에서 수동으로 등록할 때도 토큰은 인자로 넘겨야 합니다. 릴리스 바이너리는 GUI 서브시스템으로 빌드되어 PowerShell·cmd가 종료를 기다리지 않으며, 셸이 콘솔 입력 소유권을 유지하기 때문에 에이전트가 띄운 프롬프트에는 입력이 전달되지 않습니다.
+
+```powershell
+wim-backoffice-prompt-agent install --token <웹 페이지에 표시된 토큰>
+```
+
+수동 설치는 [Releases](https://github.com/WIM-Management/wim_backoffice_prompt_agent_releases/releases/latest)에서 OS별 바이너리를 직접 받아도 됩니다 (`darwin-arm64` / `darwin-amd64` / `linux-amd64` / `linux-arm64` / `windows-amd64.exe` / `windows-arm64.exe`, `SHA256SUMS`로 검증).
 
 > 에이전트는 회사 Google Workspace 계정(wimcorp.co.kr)으로만 등록됩니다. 외부 사용자는 바이너리를 받아도 등록/사용할 수 없습니다.
