@@ -23,23 +23,39 @@ $archRaw = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else
 $arch = if ($archRaw -eq "ARM64") { "arm64" } else { "amd64" }
 $asset = "wim-backoffice-prompt-agent-windows-$arch.exe"
 
+# --- 실행 중인 에이전트 정지 ---
+# Windows는 실행 중인 exe 파일을 잠근다. 재설치 시점에 이전 에이전트(주기 run-once,
+# 또는 종료되지 않고 남은 대화형 프로세스)가 살아 있으면 덮어쓰기가 공유 위반으로
+# 실패한다. 관리자 권한과 무관한 문제라 승격해도 풀리지 않는다 — 프로세스를 먼저 놓아야 한다.
+# 에이전트는 로그인 사용자 계정으로 돌기 때문에 승격 없이 종료할 수 있다.
+$running = @(Get-Process -Name "wim-backoffice-prompt-agent" -ErrorAction SilentlyContinue)
+if ($running.Count -gt 0) {
+    Write-Host "실행 중인 에이전트 $($running.Count)개를 정지합니다."
+    $running | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500
+}
+
 # --- 다운로드 + 체크섬 검증 ---
 $dir = Join-Path $env:LOCALAPPDATA "wim-backoffice-prompt-agent"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $exe = Join-Path $dir "wim-backoffice-prompt-agent.exe"
+$new = "$exe.new"
 $sums = Join-Path $dir "SHA256SUMS"
 
+# 새 파일은 별도 경로로 받아 검증까지 마친 뒤 교체한다. 실행 파일에 직접 내려받으면
+# 잠겨 있을 때 실패하고, 검증 실패 시에도 기존 바이너리가 이미 깨진 상태가 된다.
 Write-Host "최신 릴리스 다운로드 중... ($asset)"
 try {
-    Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $exe
+    Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $new
 } catch {
-    # arm64 자산은 특정 버전부터 발행된다. 그 이전 릴리스를 받는 경우 amd64로 내려간다
-    # (Windows on ARM은 x64 바이너리를 에뮬레이션으로 실행한다).
-    if ($arch -eq "arm64") {
+    # arm64 자산이 없는 이전 릴리스일 때만 amd64로 내려간다(Windows on ARM은 x64를
+    # 에뮬레이션으로 실행). 404가 아닌 오류를 폴백으로 삼키면 원인이 가려진다.
+    $status = $_.Exception.Response.StatusCode.value__
+    if ($arch -eq "arm64" -and $status -eq 404) {
         Write-Host "arm64 자산이 없는 릴리스입니다 — amd64로 대체합니다(에뮬레이션 실행)."
         $arch = "amd64"
         $asset = "wim-backoffice-prompt-agent-windows-$arch.exe"
-        Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $exe
+        Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $new
     } else {
         throw
     }
@@ -47,9 +63,26 @@ try {
 Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
 
 $expected = ((Select-String -Path $sums -Pattern ([regex]::Escape($asset))).Line -split "\s+")[0]
-$actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
-if ($expected -ne $actual) { throw "체크섬 불일치: expected=$expected actual=$actual" }
+$actual = (Get-FileHash $new -Algorithm SHA256).Hash.ToLower()
+if ($expected -ne $actual) {
+    Remove-Item $new -Force -ErrorAction SilentlyContinue
+    throw "체크섬 불일치: expected=$expected actual=$actual"
+}
 Write-Host "체크섬 OK"
+
+# --- 교체 ---
+# 잠긴 exe도 이름 변경은 허용된다. 기존 파일을 옆으로 밀고 새 파일을 제자리에 넣는다
+# (에이전트 self-update가 쓰는 방식과 동일).
+$old = $null
+if (Test-Path $exe) {
+    $old = "$exe.old"
+    Remove-Item $old -Force -ErrorAction SilentlyContinue
+    # 이전 .old가 아직 잠겨 있으면(다른 프로세스가 물고 있음) 고유 이름으로 비켜 둔다.
+    if (Test-Path $old) { $old = "$exe.old.$([Guid]::NewGuid().ToString('N').Substring(0,8))" }
+    Rename-Item -Path $exe -NewName (Split-Path $old -Leaf)
+}
+Move-Item -Path $new -Destination $exe -Force
+if ($old) { Remove-Item $old -Force -ErrorAction SilentlyContinue }
 
 # --- 사용자 PATH 등록 ---
 $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
