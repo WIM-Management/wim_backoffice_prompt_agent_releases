@@ -7,6 +7,49 @@
 # 사용자 PATH 등록 → 토큰 입력 → install(등록·데몬·첫 수집 자동).
 # 옵션: $env:WIM_PROMPT_NO_SETUP=1 (바이너리 설치까지만)
 $ErrorActionPreference = "Stop"
+
+# --- 스마트 앱 컨트롤(SAC) 점검 ---
+# 이 점검은 다른 무엇보다 먼저 온다. SAC는 신뢰되지 않은 스크립트의 PowerShell을
+# 제한 언어 모드로 내릴 수 있고, 그러면 아래 .NET 타입 접근부터 실패해 정작 안내가
+# 한 줄도 나오지 않는다. 가드는 자기가 보호하려는 대상보다 앞에 있어야 한다.
+# Windows 11의 스마트 앱 컨트롤은 유효한 Authenticode 서명과 마이크로소프트 평판이
+# 둘 다 있는 실행 파일만 허용하고, 나머지는 커널에서 차단한다. macOS Gatekeeper와 달리
+# "그래도 실행" 우회가 없다. 릴리스 바이너리는 현재 서명이 없어 차단 대상이고,
+# 차단되면 exe가 아무 메시지 없이 죽어 원인을 찾기 어렵다 — 설치 전에 멈추고 안내한다.
+#
+# 스크립트가 대신 끄지 않는 이유: SAC는 한 번 끄면 Windows를 다시 설치하기 전까지
+# 켤 수 없고, 레지스트리를 직접 건드리면 시스템이 불일치 상태로 남아 미서명 앱
+# 대부분이 차단되는 사례가 보고돼 있다. 되돌릴 수 없는 보안 설정 변경은 사용자가
+# 설정 UI에서 직접 한다.
+#
+# 값: 0=끔, 1=켬, 2=평가 모드(차단하지 않고 학습만 한다). 키가 없으면 SAC 미지원 OS다.
+# 판독이 잘못됐다고 판단되면 $env:WIM_PROMPT_SKIP_SAC_CHECK=1 로 건너뛸 수 있다.
+if ($env:WIM_PROMPT_SKIP_SAC_CHECK -ne "1") {
+    # 프로퍼티를 바로 체이닝하지 않는다 — 호출자 프로필이 Set-StrictMode 를 켜 뒀으면
+    # $null 프로퍼티 접근이 종료 에러가 되어 멀쩡한 기기의 설치가 여기서 멈춘다.
+    $sacKey = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy" `
+        -Name "VerifiedAndReputablePolicyState" -ErrorAction SilentlyContinue
+    $sacState = if ($sacKey) { $sacKey.VerifiedAndReputablePolicyState } else { $null }
+    if ($sacState -eq 1) {
+        Write-Host ""
+        Write-Host "스마트 앱 컨트롤이 켜져 있어 설치를 진행할 수 없습니다."
+        Write-Host "이 기능은 서명과 평판이 없는 프로그램을 차단하며, 우회 옵션이 없습니다."
+        Write-Host ""
+        Write-Host "끄는 방법: 설정 > 개인 정보 및 보안 > Windows 보안 >"
+        Write-Host "          앱 및 브라우저 컨트롤 > 스마트 앱 컨트롤 설정 > 끄기"
+        Write-Host ""
+        Write-Host "주의: 스마트 앱 컨트롤은 한 번 끄면 Windows를 다시 설치하기 전까지"
+        Write-Host "      켤 수 없습니다. 판단이 서지 않으면 담당자에게 문의하세요."
+        Write-Host ""
+        Write-Host "끈 뒤 이 설치 명령을 다시 실행하세요."
+        return
+    }
+    if ($sacState -eq 2) {
+        Write-Host "스마트 앱 컨트롤이 평가 모드입니다 — 지금은 차단하지 않지만, 평가 결과 켜지면"
+        Write-Host "에이전트가 차단되어 수집이 멈춥니다. 그때는 위 경로에서 끄고 다시 설치하세요."
+    }
+}
+
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 $repo = "WIM-Management/wim_backoffice_prompt_agent_releases"

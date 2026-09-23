@@ -25,6 +25,18 @@ Windows에서 수동으로 등록할 때도 토큰은 인자로 넘겨야 합니
 wim-backoffice-prompt-agent install --token <웹 페이지에 표시된 토큰>
 ```
 
+### Windows: 스마트 앱 컨트롤
+
+Windows 11의 스마트 앱 컨트롤(Smart App Control)이 켜져 있으면 에이전트가 실행되지 않습니다. 이 기능은 유효한 Authenticode 서명과 마이크로소프트 평판이 둘 다 있는 실행 파일만 허용하고 나머지는 차단하며, macOS Gatekeeper와 달리 "그래도 실행" 우회가 없습니다. 현재 릴리스 바이너리에는 Authenticode 서명이 없어 차단 대상입니다.
+
+증상은 조용합니다. 에이전트가 아무 메시지 없이 종료되어 수집만 멈춥니다. 설치 스크립트는 시작 시 상태를 읽어 켜져 있으면 안내를 출력하고 설치를 중단합니다.
+
+끄는 경로: 설정 > 개인 정보 및 보안 > Windows 보안 > 앱 및 브라우저 컨트롤 > 스마트 앱 컨트롤 설정 > 끄기
+
+스마트 앱 컨트롤은 한 번 끄면 Windows를 다시 설치하기 전까지 켤 수 없습니다. 설치 스크립트가 대신 끄지 않는 이유가 이것입니다. 레지스트리를 직접 수정해 끄면 시스템이 불일치 상태로 남아 미서명 앱 대부분이 차단되는 사례가 보고돼 있으므로, 설정 UI에서 끄십시오.
+
+이미 설치된 기기에서 수집이 멈췄을 때는 `wim-backoffice-prompt-agent doctor`가 스마트 앱 컨트롤 상태를 함께 점검합니다.
+
 수동 설치는 [Releases](https://github.com/WIM-Management/wim_backoffice_prompt_agent_releases/releases/latest)에서 OS별 바이너리를 직접 받아도 됩니다 (`darwin-arm64` / `darwin-amd64` / `linux-amd64` / `linux-arm64` / `windows-amd64.exe` / `windows-arm64.exe`, `SHA256SUMS`로 검증).
 
 > 에이전트는 회사 Google Workspace 계정(wimcorp.co.kr)으로만 등록됩니다. 외부 사용자는 바이너리를 받아도 등록/사용할 수 없습니다.
